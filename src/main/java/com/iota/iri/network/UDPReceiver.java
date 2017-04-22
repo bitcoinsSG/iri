@@ -23,7 +23,7 @@ public class UDPReceiver extends Node {
     private static final UDPReceiver instance = new UDPReceiver();
     private final DatagramPacket receivingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
             TRANSACTION_PACKET_SIZE);
-    private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private final ExecutorService executor = Executors.newFixedThreadPool(17);
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
     private DatagramSocket socket;
@@ -34,8 +34,6 @@ public class UDPReceiver extends Node {
         log.info("UDP replicator is accepting connections on udp port " + port);
 
         executor.submit(spawnReceiverThread());
-
-        executor.shutdown();
     }
 
     private Runnable spawnReceiverThread() {
@@ -53,7 +51,7 @@ public class UDPReceiver extends Node {
                     socket.receive(receivingPacket);
 
                     if (receivingPacket.getLength() == TRANSACTION_PACKET_SIZE) {
-                        processReceivedData(receivingPacket.getData(), receivingPacket.getSocketAddress(), "udp", curl, receivedTransactionTrits);
+                        executor.submit(() -> processReceivedData(receivingPacket.getData(), receivingPacket.getSocketAddress(), "udp", curl));
                     } else {
                         receivingPacket.setLength(TRANSACTION_PACKET_SIZE);
                     }
