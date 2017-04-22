@@ -158,6 +158,7 @@ public class Node {
     }
 
     public void queueDataToProcess(byte[] receivedData, SocketAddress senderAddress) {
+
         synchronized (bufferQueue) {
             bufferQueue.offer(new AbstractMap.SimpleEntry<SocketAddress, byte[]>(senderAddress, receivedData));
         }
@@ -338,6 +339,8 @@ public class Node {
                             //Hash.SIZE_IN_BYTES);
 
                     neighbors.forEach(n -> n.send(tipRequestingPacket));
+
+                    log.info("Recv. queue size: {}",bufferQueue.size());
 
                     Thread.sleep(5000);
                 } catch (final Exception e) {
