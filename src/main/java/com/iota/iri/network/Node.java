@@ -38,6 +38,10 @@ public class Node {
     private final List<Neighbor> neighbors = new CopyOnWriteArrayList<>();
     private final ConcurrentSkipListSet<TransactionViewModel> queuedTransactionViewModels = weightQueue();
     private final Queue<Map.Entry<SocketAddress, byte[]>> bufferQueue = new LinkedList<>();
+    private final Queue<Map.Entry<Neighbor, TransactionViewModel>> queuedReplyToRequest = new LinkedList<>();
+    private final List<Hash> tipsAmortized = new ArrayList<>();
+    private int tipsAmortizedCounter = 0;
+
 
     private final DatagramPacket sendingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
             TRANSACTION_PACKET_SIZE);
@@ -65,10 +69,13 @@ public class Node {
                 log.info("-> Adding neighbor : {} ", u.getAddress());
         }).forEach(neighbors::add);
 
+        executor.submit(spawnReplyToRequestThread());
+
         executor.submit(spawnBroadcasterThread());
         executor.submit(spawnTipRequesterThread());
         executor.submit(spawnNeighborDNSRefresherThread());
         executor.submit(spawnDataProcessingThread());
+
 
         executor.shutdown();
     }
@@ -232,7 +239,8 @@ public class Node {
                     if (transactionViewModel.getType() == TransactionViewModel.FILLED_SLOT) {
                         //log.info(neighbor.getAddress().getHostString() + "Requested TX Hash: " + transactionPointer);
                         try {
-                            sendPacket(sendingPacket, transactionViewModel, neighbor);
+                            replyToRequest(transactionViewModel, neighbor);
+                            //sendPacket(sendingPacket, transactionViewModel, neighbor);
                         } catch (Exception e) {
                             log.error("Error fetching transaction to request.", e);
                         }
@@ -277,13 +285,35 @@ public class Node {
         }
     }
 
+    private void replyToRequest(TransactionViewModel transactionViewModel, Neighbor neighbor) {
+        //ReplicatorSinkPool.instance().broadcast(transactionViewModel);
+        queuedReplyToRequest.offer(new AbstractMap.SimpleEntry<Neighbor, TransactionViewModel>(neighbor, transactionViewModel));
+    }
+
     private Hash getRandomTipPointer() throws Exception {
-        Hash transactionPointer = Hash.NULL_HASH;
-        final Hash[] tips = TipsViewModel.getTipHashes();
-        if(tips.length > 0) {
-            transactionPointer = tips[rnd.nextInt(tips.length)];
+
+        if (tipsAmortized.size() == 0 || tipsAmortizedCounter++ % 100 == 0) {
+            fillTipsAmortized();
         }
+        Hash transactionPointer = Hash.NULL_HASH;
+        if (tipsAmortized.size() > 0) {
+            transactionPointer = tipsAmortized.get(rnd.nextInt(tipsAmortized.size()));
+        }
+
+        //check that tip is still a tip - if not refill tips amortize
+        TransactionViewModel transactionViewModel = TransactionViewModel.fromHash(transactionPointer);
+        if(transactionViewModel.getApprovers().length > 0) {
+            fillTipsAmortized();
+        }
+
         return transactionPointer;
+    }
+
+    private void fillTipsAmortized() throws ExecutionException, InterruptedException {
+        final Hash[] tips = TipsViewModel.getTipHashes();
+        for (Hash tip : tips) {
+            tipsAmortized.add(tip);
+        }
     }
 
     public static void sendPacket(DatagramPacket sendingPacket, TransactionViewModel transactionViewModel, Neighbor neighbor) throws Exception {
@@ -295,6 +325,33 @@ public class Node {
             neighbor.send(sendingPacket);
         }
     }
+
+
+    private Runnable spawnReplyToRequestThread() {
+        return () -> {
+            Map.Entry<Neighbor, TransactionViewModel> latestEntry;
+            Curl curl = new Curl();
+            while (!shuttingDown.get()) {
+                if (queuedReplyToRequest.size() != 0) {
+                    synchronized (queuedReplyToRequest) {
+                        latestEntry = queuedReplyToRequest.poll();
+                    }
+                    try {
+                        sendPacket(sendingPacket,latestEntry.getValue(),latestEntry.getKey());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        };
+    }
+
 
     private Runnable spawnBroadcasterThread() {
         return () -> {
@@ -324,6 +381,7 @@ public class Node {
         };
     }
 
+
     private Runnable spawnTipRequesterThread() {
         return () -> {
 
@@ -341,6 +399,10 @@ public class Node {
                     neighbors.forEach(n -> n.send(tipRequestingPacket));
 
                     log.info("Recv. queue size: {}",bufferQueue.size());
+                    log.info("Broadcast queue size: {}",queuedTransactionViewModels.size());
+                    log.info("ReplyToRequest queue size: {}",queuedReplyToRequest.size());
+
+
 
                     Thread.sleep(5000);
                 } catch (final Exception e) {
