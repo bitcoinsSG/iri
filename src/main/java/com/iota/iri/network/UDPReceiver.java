@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +55,7 @@ public class UDPReceiver extends Node {
 
                     if (receivingPacket.getLength() == TRANSACTION_PACKET_SIZE) {
                         //processReceivedData(receivingPacket.getData(), receivingPacket.getSocketAddress(), "udp", curl);
-                        Node.instance().queueDataToProcess(receivingPacket.getData(), receivingPacket.getSocketAddress());
+                        Node.instance().queueDataToProcess(Arrays.copyOf(receivingPacket.getData(), TRANSACTION_PACKET_SIZE), receivingPacket.getSocketAddress());
                     } else {
                         receivingPacket.setLength(TRANSACTION_PACKET_SIZE);
                     }
