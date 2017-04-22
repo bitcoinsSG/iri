@@ -162,6 +162,11 @@ public class Milestone {
     }
 
     private boolean validateMilestone(TransactionViewModel transactionViewModel, int index) throws Exception {
+
+        if (milestones.get(index) != null) {
+            // Already validated.
+            return true;
+        }
         final BundleValidator bundleValidator = new BundleValidator(BundleViewModel.fromHash(transactionViewModel.getBundleHash()));
         if (bundleValidator.getTransactions().size() == 0) {
             return false;
