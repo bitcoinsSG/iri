@@ -1,31 +1,21 @@
 package com.iota.iri.network;
 
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.iota.iri.BundleValidator;
 import com.iota.iri.TransactionValidator;
 import com.iota.iri.controllers.*;
 import com.iota.iri.model.Hash;
 import com.iota.iri.network.replicator.ReplicatorSinkPool;
-import com.iota.iri.service.TipsManager;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.iota.iri.Milestone;
-import com.iota.iri.conf.Configuration;
-import com.iota.iri.conf.Configuration.DefaultConfSettings;
 import com.iota.iri.hash.Curl;
-import com.iota.iri.utils.Converter;
 
 /**
  * The class node is responsible for managing Thread's connection.
@@ -47,13 +37,14 @@ public class Node {
 
     private final List<Neighbor> neighbors = new CopyOnWriteArrayList<>();
     private final ConcurrentSkipListSet<TransactionViewModel> queuedTransactionViewModels = weightQueue();
+    private final Queue<Map.Entry<SocketAddress, byte[]>> bufferQueue = new LinkedList<>();
 
     private final DatagramPacket sendingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
             TRANSACTION_PACKET_SIZE);
     private final DatagramPacket tipRequestingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
             TRANSACTION_PACKET_SIZE);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private final ExecutorService executor = Executors.newFixedThreadPool(5);
 
     private double P_DROP_TRANSACTION;
     private static final SecureRandom rnd = new SecureRandom();
@@ -77,6 +68,7 @@ public class Node {
         executor.submit(spawnBroadcasterThread());
         executor.submit(spawnTipRequesterThread());
         executor.submit(spawnNeighborDNSRefresherThread());
+        executor.submit(spawnDataProcessingThread());
 
         executor.shutdown();
     }
@@ -149,8 +141,29 @@ public class Node {
         
         return Optional.of(hostAddress);
     }
+
+    private Runnable spawnDataProcessingThread() {
+        return () -> {
+            Map.Entry<SocketAddress, byte[]> latestEntry;
+            Curl curl = new Curl();
+            while (!shuttingDown.get()) {
+                if (bufferQueue.size() != 0) {
+                    synchronized (bufferQueue) {
+                        latestEntry = bufferQueue.poll();
+                    }
+                    processReceivedData(latestEntry.getValue(), latestEntry.getKey(), "udp", curl);
+                }
+            }
+        };
+    }
+
+    public void queueDataToProcess(byte[] receivedData, SocketAddress senderAddress) {
+        synchronized (bufferQueue) {
+            bufferQueue.offer(new AbstractMap.SimpleEntry<SocketAddress, byte[]>(senderAddress, receivedData));
+        }
+    }
     
-    public void processReceivedData(byte[] receivedData, SocketAddress senderAddress, String uriScheme, Curl curl, int[] receivedTransactionTrits) {
+    public void processReceivedData(byte[] receivedData, SocketAddress senderAddress, String uriScheme, Curl curl) {
         long timestamp;
         TransactionViewModel receivedTransactionViewModel, transactionViewModel;
         Hash transactionPointer;
