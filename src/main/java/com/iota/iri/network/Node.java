@@ -198,7 +198,6 @@ public class Node {
                         broadcast(receivedTransactionViewModel);
                     }
                     Hash requestedHash = new Hash(receivedData, TransactionViewModel.SIZE, TransactionRequester.REQUEST_HASH_SIZE);
-                    log.info(neighbor.getAddress().getHostString() + " REQUESTED: " + transactionPointer);
                     if (requestedHash.equals(receivedTransactionViewModel.getHash())) {
                         try {
                             if (TransactionRequester.instance().numberOfTransactionsToRequest() > 0) {
@@ -214,9 +213,10 @@ public class Node {
                             break;
                         }
                     } else {
+                        log.info("REQUESTED: " + requestedHash);
                         try {
                             transactionViewModel = TransactionViewModel.find(Arrays.copyOf(requestedHash.bytes(), TransactionRequester.REQUEST_HASH_SIZE));
-                            log.info("Requested Hash: " + requestedHash + " \nFound: " + transactionViewModel.getHash());
+                            log.info("FOUND: " + transactionViewModel.getHash());
                         } catch (Exception e) {
                             log.error("Error while searching for transaction.", e);
                             break;
