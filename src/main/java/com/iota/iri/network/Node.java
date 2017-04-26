@@ -180,6 +180,7 @@ public class Node {
                     
                     try {
                         stored = receivedTransactionViewModel.store();
+                        storedTime = System.nanoTime();
                     } catch (Exception e) {
                         log.error("Error accessing persistence store.", e);
                         neighbor.incInvalidTransactions();
