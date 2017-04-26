@@ -199,6 +199,7 @@ public class Node {
                     }
                     Hash requestedHash = new Hash(receivedData, TransactionViewModel.SIZE, TransactionRequester.REQUEST_HASH_SIZE);
                     if (requestedHash.equals(receivedTransactionViewModel.getHash())) {
+                        log.info(neighbor.getAddress()+" NOREQUEST");
                         try {
                             if (TransactionRequester.instance().numberOfTransactionsToRequest() > 0) {
                                 neighbor.incRandomTransactionRequests();
@@ -287,6 +288,7 @@ public class Node {
                         for (final Neighbor neighbor : neighbors) {
                             try {
                                 sendPacket(sendingPacket, transactionViewModel, neighbor);
+                                log.info(neighbor.getAddress()+"      BROADCAST: "+transactionViewModel.getHash());
                             } catch (final Exception e) {
                                 // ignore
                             }
