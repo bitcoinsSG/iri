@@ -142,10 +142,13 @@ public class Node {
     
     public void processReceivedData(byte[] receivedData, SocketAddress senderAddress, String uriScheme, Curl curl, int[] receivedTransactionTrits) {
         long timestamp;
-        TransactionViewModel receivedTransactionViewModel, transactionViewModel;
-        Hash transactionPointer;
+        TransactionViewModel receivedTransactionViewModel = null;
+        TransactionViewModel transactionViewModel;
+        Hash transactionPointer = null;
 
         boolean addressMatch = false;
+        long startTime = System.nanoTime();
+        long storedTime = 0L;
         for (final Neighbor neighbor : getNeighbors()) {
             boolean stored = false;
             if (neighbor instanceof TCPNeighbor) {
@@ -157,18 +160,24 @@ public class Node {
             if (addressMatch) {
                 neighbor.incAllTransactions();
                 if(rnd.nextDouble() < P_DROP_TRANSACTION) {
-                    //log.info("Randomly dropping transaction. Stand by... ");
+                    log.info(neighbor.getAddress()+ "Randomly dropping transaction. Stand by... ");
                     break;
                 }
                 try {
                     receivedTransactionViewModel = TransactionValidator.validate(receivedData, curl);
                 } catch (final RuntimeException e) {
-                    log.error("Received an Invalid TransactionViewModel. Dropping it...");
+                    if (receivedTransactionViewModel != null) {
+                        log.error(neighbor.getAddress()+" Received an Invalid TransactionViewModel. Dropping it... HASH: "+receivedTransactionViewModel.getHash());
+                    }
                     neighbor.incInvalidTransactions();
                     break;
                 }
-
+                log.info(neighbor.getAddress()+" RECEIVED: "+receivedTransactionViewModel.getHash());
                 {
+                    if (receivedTransactionViewModel.getHash().equals(Hash.NULL_HASH)) {
+                        log.info(neighbor.getAddress()+" NULL_HASH transaction received");
+                    }
+                    
                     try {
                         stored = receivedTransactionViewModel.store();
                     } catch (Exception e) {
@@ -184,6 +193,7 @@ public class Node {
                         } catch (Exception e) {
                             log.error("Error updating transactions.", e);
                         }
+                        log.info(neighbor.getAddress()+" STORE_TIME: "+String.valueOf((storedTime-startTime)/1000000L)+"  UPDATE_TIME: "+String.valueOf((System.nanoTime()-storedTime)/1000000L));
                         neighbor.incNewTransactions();
                         broadcast(receivedTransactionViewModel);
                     }
@@ -212,9 +222,10 @@ public class Node {
                         }
                     }
                     if (transactionViewModel != null && transactionViewModel.getType() == TransactionViewModel.FILLED_SLOT) {
-                        //log.info(neighbor.getAddress().getHostString() + "Requested TX Hash: " + transactionPointer);
+                        log.info(neighbor.getAddress().getHostString() + " REQUESTED: " + transactionPointer);
                         try {
                             sendPacket(sendingPacket, transactionViewModel, neighbor);
+                            log.info(neighbor.getAddress()+" SENT: "+transactionViewModel.getHash()+" TURNOVER TIME: "+String.valueOf((System.nanoTime()-startTime)/1000000L));
                         } catch (Exception e) {
                             log.error("Error fetching transaction to request.", e);
                         }
