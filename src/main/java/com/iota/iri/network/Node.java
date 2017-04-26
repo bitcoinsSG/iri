@@ -198,6 +198,7 @@ public class Node {
                         broadcast(receivedTransactionViewModel);
                     }
                     Hash requestedHash = new Hash(receivedData, TransactionViewModel.SIZE, TransactionRequester.REQUEST_HASH_SIZE);
+                    log.info(neighbor.getAddress().getHostString() + " REQUESTED: " + transactionPointer);
                     if (requestedHash.equals(receivedTransactionViewModel.getHash())) {
                         try {
                             if (TransactionRequester.instance().numberOfTransactionsToRequest() > 0) {
@@ -215,14 +216,13 @@ public class Node {
                     } else {
                         try {
                             transactionViewModel = TransactionViewModel.find(Arrays.copyOf(requestedHash.bytes(), TransactionRequester.REQUEST_HASH_SIZE));
-                            log.debug("Requested Hash: " + requestedHash + " \nFound: " + transactionViewModel.getHash());
+                            log.info("Requested Hash: " + requestedHash + " \nFound: " + transactionViewModel.getHash());
                         } catch (Exception e) {
                             log.error("Error while searching for transaction.", e);
                             break;
                         }
                     }
-                    if (transactionViewModel != null && transactionViewModel.getType() == TransactionViewModel.FILLED_SLOT) {
-                        log.info(neighbor.getAddress().getHostString() + " REQUESTED: " + transactionPointer);
+                    if (transactionViewModel != null && transactionViewModel.getType() == TransactionViewModel.FILLED_SLOT) {                        
                         try {
                             sendPacket(sendingPacket, transactionViewModel, neighbor);
                             log.info(neighbor.getAddress()+" SENT: "+transactionViewModel.getHash()+" TURNOVER TIME: "+String.valueOf((System.nanoTime()-startTime)/1000000L));
@@ -266,6 +266,7 @@ public class Node {
         synchronized (sendingPacket) {
             System.arraycopy(transactionViewModel.getBytes(), 0, sendingPacket.getData(), 0, TransactionViewModel.SIZE);
             Hash hash = TransactionRequester.instance().transactionToRequest(rnd.nextDouble() < P_SELECT_MILESTONE );
+            log.info(neighbor.getAddress()+" REQUESTING: "+hash);
             System.arraycopy(hash != null ? hash.bytes(): transactionViewModel.getHash().bytes(), 0,
                     sendingPacket.getData(), TransactionViewModel.SIZE, REQUEST_HASH_SIZE);
             neighbor.send(sendingPacket);
