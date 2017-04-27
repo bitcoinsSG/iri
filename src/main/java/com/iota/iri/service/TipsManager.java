@@ -123,7 +123,7 @@ public class TipsManager {
         return null;
     }
 
-    private static long capSum(long a, long b, long max) {
+    static long capSum(long a, long b, long max) {
         if(a + b < 0 || a + b > max) {
             return max;
         }
