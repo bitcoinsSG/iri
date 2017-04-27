@@ -62,8 +62,7 @@ public class TipsManager {
                 updateRatings(tip, ratings, analyzedTips);
                 analyzedTips.clear();
 
-                String traversedPaths = "Traversed: \n";
-                traversedPaths += "Tail: " + tail.toString() + " Rating: " + ratings.get(tip);
+                String traversedPaths = "Tail: " + tail.toString() + " Rating: " + ratings.get(tip);
                 Hash[] tips;
                 TransactionViewModel transactionViewModel;
                 int carlo;
