@@ -76,7 +76,7 @@ public class TipsManager {
                         updateRatings(tip, ratings, analyzedTips);
                         analyzedTips.clear();
                     }
-                    traversedPaths += "\nRatings: " + ratings.values().stream().map(l -> String.valueOf(l) + " / ").reduce(String::concat).orElse("/");
+                    //traversedPaths += " Ratings: " + ratings.values().stream().map(l -> String.valueOf(l) + " / ").reduce(String::concat).orElse("/");
                     monte = seed.nextDouble() * ratings.get(tip);
                     for (carlo = tips.length; carlo-- > 1; ) {
                         if (ratings.containsKey(tips[carlo])) {
@@ -106,7 +106,7 @@ public class TipsManager {
                             tail = tip;
                             traversedPaths += "\nTail: " + tail.toString() + " Rating: " + ratings.get(tip);
                         } else {
-                            traversedPaths += "\nTip: " + tip.toString() + " Rating: " + ratings.get(tip);
+                            //traversedPaths += "\nTip: " + tip.toString() + " Rating: " + ratings.get(tip);
                         }
                     }
                 }
