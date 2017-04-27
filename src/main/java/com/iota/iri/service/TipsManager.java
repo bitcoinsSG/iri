@@ -87,7 +87,7 @@ public class TipsManager {
                             break;
                         }
                     }
-                    traversedPaths += "Random selection index: " + carlo + " Hash:" + tips[carlo].toString();
+                    traversedPaths += "\nRandom selection index: " + carlo + " Hash:" + tips[carlo].toString();
                     transactionViewModel = TransactionViewModel.fromHash(tips[carlo]);
                     if (transactionViewModel == null) {
                         log.info("Tip not found. ");
@@ -105,9 +105,9 @@ public class TipsManager {
                         tip = transactionViewModel.getHash();
                         if(transactionViewModel.getCurrentIndex() == 0) {
                             tail = tip;
-                            traversedPaths += "Tail: " + tail.toString() + " Rating: " + ratings.get(tip);
+                            traversedPaths += "\nTail: " + tail.toString() + " Rating: " + ratings.get(tip);
                         } else {
-                            traversedPaths += "Tip: " + tip.toString() + " Rating: " + ratings.get(tip);
+                            traversedPaths += "\nTip: " + tip.toString() + " Rating: " + ratings.get(tip);
                         }
                     }
                 }
