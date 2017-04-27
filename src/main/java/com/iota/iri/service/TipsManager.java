@@ -94,7 +94,7 @@ public class TipsManager {
                     } else if (!TransactionRequester.instance().checkSolidity(transactionViewModel.getHash(), false)) {
                         log.info("Transaction not solid.");
                         break;
-                    } else if (LedgerValidator.updateFromSnapshot(transactionViewModel.getHash())) {
+                    } else if (!LedgerValidator.updateFromSnapshot(transactionViewModel.getHash())) {
                         log.info("Bundle not consistent.");
                         break;
                     } else if (transactionViewModel.getHash().equals(extraTip) || transactionViewModel.getHash().equals(tip)) {
