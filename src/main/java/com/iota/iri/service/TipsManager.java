@@ -62,6 +62,8 @@ public class TipsManager {
                 updateRatings(tip, ratings, analyzedTips);
                 analyzedTips.clear();
 
+                String traversedPaths = "Traversed: \n";
+                traversedPaths += "Tail: " + tail.toString() + " Rating: " + ratings.get(tip);
                 Hash[] tips;
                 TransactionViewModel transactionViewModel;
                 int carlo;
@@ -75,6 +77,7 @@ public class TipsManager {
                         updateRatings(tip, ratings, analyzedTips);
                         analyzedTips.clear();
                     }
+                    traversedPaths += "\nRatings: " + ratings.values().stream().map(l -> String.valueOf(l) + " / ").reduce(String::concat).orElse("/");
                     monte = seed.nextDouble() * ratings.get(tip);
                     for (carlo = tips.length; carlo-- > 1; ) {
                         if (ratings.containsKey(tips[carlo])) {
@@ -84,11 +87,16 @@ public class TipsManager {
                             break;
                         }
                     }
+                    traversedPaths += "Random selection index: " + carlo + " Hash:" + tips[carlo].toString();
                     transactionViewModel = TransactionViewModel.fromHash(tips[carlo]);
                     if (transactionViewModel == null) {
+                        log.info("Tip not found. ");
                         break;
-                    } else if (!(TransactionRequester.instance().checkSolidity(transactionViewModel.getHash(), false) &&
-                            LedgerValidator.updateFromSnapshot(transactionViewModel.getHash()))) {
+                    } else if (!TransactionRequester.instance().checkSolidity(transactionViewModel.getHash(), false)) {
+                        log.info("Transaction not solid.");
+                        break;
+                    } else if (LedgerValidator.updateFromSnapshot(transactionViewModel.getHash())) {
+                        log.info("Bundle not consistent.");
                         break;
                     } else if (transactionViewModel.getHash().equals(extraTip) || transactionViewModel.getHash().equals(tip)) {
                         break;
@@ -97,10 +105,14 @@ public class TipsManager {
                         tip = transactionViewModel.getHash();
                         if(transactionViewModel.getCurrentIndex() == 0) {
                             tail = tip;
+                            traversedPaths += "Tail: " + tail.toString() + " Rating: " + ratings.get(tip);
+                        } else {
+                            traversedPaths += "Tip: " + tip.toString() + " Rating: " + ratings.get(tip);
                         }
                     }
                 }
-                log.info("Tx traversed to find tip: " + traversedTails);
+                log.info("Traversed Path: {}", traversedPaths);
+                log.info("Tx traversed to find tip: {}", traversedTails);
                 return tail;
             } catch (Exception e) {
                 e.printStackTrace();
