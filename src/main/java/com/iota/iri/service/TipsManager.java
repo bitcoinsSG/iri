@@ -111,7 +111,7 @@ public class TipsManager {
                     }
                 }
                 log.info("Traversed Path: {}", traversedPaths);
-                log.info("Tx traversed to find tip: {}", traversedTails);
+                log.info("Tx traversed to find tip: {}, Hash=", traversedTails, tail);
                 return tail;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -120,6 +120,7 @@ public class TipsManager {
                 API.incEllapsedTime_getTxToApprove(System.nanoTime() - startTime);
             }
         }
+        log.info("transactionToApprove returns null");
         return null;
     }
 
