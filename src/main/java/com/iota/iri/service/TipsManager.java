@@ -111,7 +111,7 @@ public class TipsManager {
                     }
                 }
                 log.info("Traversed Path: {}", traversedPaths);
-                log.info("Tx traversed to find tip: {}, Hash=", traversedTails, tail);
+                log.info("Tx traversed to find tip: {}, Hash= {}", traversedTails, tail);
                 return tail;
             } catch (Exception e) {
                 e.printStackTrace();
