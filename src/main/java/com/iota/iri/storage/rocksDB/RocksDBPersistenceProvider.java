@@ -699,6 +699,8 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
         //fillMissingColumns(familyDescriptors, familyHandles, path);
 
         db = RocksDB.open(options, path, familyDescriptors, familyHandles);
+
+
         db.enableFileDeletions(true);
 
         fillmodelColumnHandles(familyHandles);
