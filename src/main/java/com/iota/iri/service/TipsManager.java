@@ -141,6 +141,8 @@ public class TipsManager {
                 log.error("Encountered error: " + e.getLocalizedMessage());
             } finally {
                 API.incEllapsedTime_getTxToApprove(System.nanoTime() - startTime);
+                ratings.clear();
+                analyzedTips.clear();
             }
         }
         log.info("transactionToApprove returns null");
