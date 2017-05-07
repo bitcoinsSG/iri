@@ -28,6 +28,8 @@ public class TransactionRequester {
     private static final TransactionRequester instance = new TransactionRequester();
     private final SecureRandom random = new SecureRandom();
 
+    private final Object syncObj = new Object();
+
     public static void init(double p_REMOVE_REQUEST) {
         if(!initialized) {
             initialized = true;
@@ -36,7 +38,7 @@ public class TransactionRequester {
     }
 
     public Hash[] getRequestedTransactions() {
-        synchronized (this) {
+        synchronized (syncObj) {
             return ArrayUtils.addAll(transactionsToRequest.stream().toArray(Hash[]::new),
                     milestoneTransactionsToRequest.stream().toArray(Hash[]::new));
         }
@@ -47,7 +49,7 @@ public class TransactionRequester {
     }
 
     boolean clearTransactionRequest(Hash hash) {
-        synchronized (this) {
+        synchronized (syncObj) {
             boolean milestone = milestoneTransactionsToRequest.remove(hash);
             boolean normal = transactionsToRequest.remove(hash);
             return normal || milestone;
@@ -56,7 +58,7 @@ public class TransactionRequester {
 
     public void requestTransaction(Hash hash, boolean milestone) throws Exception {
         if (!hash.equals(Hash.NULL_HASH) && !TransactionViewModel.exists(hash)) {
-            synchronized (this) {
+            synchronized (syncObj) {
                 if(milestone) {
                     transactionsToRequest.remove(hash);
                     milestoneTransactionsToRequest.add(hash);
@@ -74,7 +76,7 @@ public class TransactionRequester {
         final long beginningTime = System.currentTimeMillis();
         Hash hash = null;
         Set<Hash> requestSet;
-        synchronized (this) {
+        synchronized (syncObj) {
             if(milestone) {
                  requestSet = milestoneTransactionsToRequest;
                  if(requestSet.size() == 0) {
@@ -101,7 +103,7 @@ public class TransactionRequester {
         }
 
         if(random.nextDouble() < P_REMOVE_REQUEST && !requestSet.equals(milestoneTransactionsToRequest)) {
-            synchronized (this) {
+            synchronized (syncObj) {
                 transactionsToRequest.remove(hash);
             }
         }
