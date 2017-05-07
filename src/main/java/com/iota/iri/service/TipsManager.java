@@ -79,7 +79,7 @@ public class TipsManager {
                         milestoneIndex = 0;
                     }
                     MilestoneViewModel milestoneViewModel = MilestoneViewModel.findClosestNextMilestone(milestoneIndex);
-                    if(milestoneViewModel != null) {
+                    if(milestoneViewModel != null && milestoneViewModel.getHash() != null) {
                         tip = milestoneViewModel.getHash();
                     }
                 }

@@ -22,14 +22,14 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(MemDBPersistenceProvider.class);
 
-    private final Map<Indexable, Persistable> transactionMap = new ConcurrentHashMap<>();
-    private final TreeMap<Indexable, Persistable> milestoneMap = new TreeMap<>();
-    private final Map<Indexable, Persistable> stateDiffMap = new ConcurrentHashMap<>();
-    private final Map<Indexable, Persistable> hashesMap = new ConcurrentHashMap<>();
+    private final Map<Indexable, byte[]> transactionMap = new ConcurrentHashMap<>();
+    private final TreeMap<Indexable, byte[]> milestoneMap = new TreeMap<>();
+    private final Map<Indexable, byte[]> stateDiffMap = new ConcurrentHashMap<>();
+    private final Map<Indexable, byte[]> hashesMap = new ConcurrentHashMap<>();
 
     private final Object syncObj = new Object();
 
-    private final AtomicReference<Map<Class<?>, Map<Indexable, Persistable>>> classTreeMap = new AtomicReference<>();
+    private final AtomicReference<Map<Class<?>, Map<Indexable, byte[]>>> classTreeMap = new AtomicReference<>();
 
     private final SecureRandom seed = new SecureRandom();
 
@@ -48,7 +48,7 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
     }
 
     private void initClassTreeMap() {
-        Map<Class<?>, Map<Indexable, Persistable>> classMap = new HashMap<>();
+        Map<Class<?>, Map<Indexable, byte[]>> classMap = new HashMap<>();
         classMap.put(Transaction.class, transactionMap);
         classMap.put(Milestone.class, milestoneMap);
         classMap.put(StateDiff.class, stateDiffMap);
@@ -72,6 +72,9 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
 
     private byte[] objectBytes(Object o) throws IOException {
         byte[] output;
+        if(o instanceof byte[]) {
+            return (byte[]) o;
+        }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(bos);
         oos.writeObject(o);
@@ -95,7 +98,7 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public boolean save(Persistable thing, Indexable index) throws Exception {
-        classTreeMap.get().get(thing.getClass()).put(index, thing);
+        classTreeMap.get().get(thing.getClass()).put(index, thing.bytes());
         //saveMap.get(thing.getClass()).apply(thing, index);
         return true;
     }
@@ -120,27 +123,40 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public boolean exists(Class<?> model, Indexable key) throws Exception {
-        Map<Indexable, Persistable> map = classTreeMap.get().get(model);
-        if(map instanceof ConcurrentHashMap) {
-            return map.containsKey(key);
-        } else {
-            synchronized (syncObj) {
+        Map<Indexable, byte[]> map = classTreeMap.get().get(model);
+        if(key != null) {
+            if (map instanceof ConcurrentHashMap) {
                 return map.containsKey(key);
+            } else {
+                synchronized (syncObj) {
+                    return map.containsKey(key);
+                }
             }
         }
+        return false;
     }
 
     @Override
     public Persistable latest(Class<?> model) throws Exception {
-        Map<Indexable, Persistable> map = classTreeMap.get().get(model);
+        Map<Indexable, byte[]> map = classTreeMap.get().get(model);
+        Persistable object = (Persistable) model.newInstance();
+        byte[] result = null;
         if(map instanceof TreeMap) {
             synchronized (syncObj) {
-                return map.isEmpty() ? null : (Persistable) ((TreeMap) map).lastEntry().getValue();
+                if(!map.isEmpty()) {
+                    result = (byte[]) ((TreeMap) map).lastEntry().getValue();
+                }
             }
         } else {
-            return map.entrySet().stream().reduce((a, b) -> a.getKey().compareTo(b.getKey()) > 0 ? a:b)
-                    .map(Map.Entry::getValue).orElse(null);
+            result = map.entrySet().stream().reduce((a, b) -> a.getKey().compareTo(b.getKey()) > 0 ? a:b)
+                            .map(Map.Entry::getValue).orElse(null);
         }
+        if(result == null) {
+            object = null;
+        } else {
+            object.read(result);
+        }
+        return object;
     }
 
     @Override
@@ -151,14 +167,20 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Persistable get(Class<?> model, Indexable index) throws Exception {
-        Map<Indexable, Persistable> map = classTreeMap.get().get(model);
-        if(map instanceof ConcurrentHashMap) {
-            return map.get(index);
-        } else {
-            synchronized (syncObj) {
-                return map.get(index);
+        Map<Indexable, byte[]> map = classTreeMap.get().get(model);
+        Persistable object = (Persistable) model.newInstance();
+        if(index != null) {
+            byte[] bytes;
+            if (map instanceof ConcurrentHashMap) {
+                bytes = map.get(index);
+            } else {
+                synchronized (syncObj) {
+                    bytes = map.get(index);
+                }
             }
+            object.read(bytes);
         }
+        return object;
     }
 
     @Override
@@ -197,9 +219,10 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Persistable next(Class<?> model, Indexable index) throws Exception {
-        Map<Indexable, Persistable> map = classTreeMap.get().get(model);
+        Map<Indexable, byte[]> map = classTreeMap.get().get(model);
         if(map instanceof TreeMap) {
             Map.Entry entry;
+            Persistable object = (Persistable) model.newInstance();
             synchronized (syncObj) {
                 if (map.isEmpty()) {
                     return null;
@@ -209,7 +232,13 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
             if (entry == null) {
                 return null;
             }
-            return (Persistable) entry.getValue();
+            byte[] result = (byte[]) entry.getValue();
+            if(result == null) {
+                object = null;
+            } else {
+                object.read(result);
+            }
+            return object;
         }
         return null;
     }
@@ -223,23 +252,35 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
             }
             entry = milestoneMap.floorEntry( index.decremented());
         }
+        Persistable object = (Persistable) model.newInstance();
         if(entry == null) {
             return null;
         }
-        return (Persistable) entry.getValue();
+        byte[] result = (byte[]) entry.getValue();
+        if(result == null) {
+            object = null;
+        } else {
+            object.read(result);
+        }
+        return object;
     }
 
     @Override
     public Persistable first(Class<?> model) throws Exception {
+        Persistable object = (Persistable) model.newInstance();
         synchronized (syncObj) {
-            return milestoneMap.isEmpty() ? null : milestoneMap.firstEntry().getValue();
+            if(milestoneMap.isEmpty()) {
+            } else {
+                object.read(milestoneMap.firstEntry().getValue());
+            }
         }
+        return object;
     }
 
     private DoubleFunction<Object, Object> updateTransaction() {
         return (txObject, hash) -> {
             Transaction transaction = (Transaction) txObject;
-            transactionMap.put((Hash) hash, transaction);
+            transactionMap.put((Hash) hash, transaction.bytes());
         };
     }
 
@@ -247,7 +288,7 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
         return (msObj, hash) -> {
             Milestone milestone = ((Milestone) msObj);
             synchronized (syncObj) {
-                milestoneMap.put(milestone.index, milestone);
+                milestoneMap.put(milestone.index, milestone.bytes());
             }
         };
     }
@@ -290,20 +331,20 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
         Object db;
 
         if((db = objectFromBytes(loadBytes(path + "/transaction.map"))) != null) {
-            transactionMap.putAll((Map<Hash, Transaction>) db);
+            transactionMap.putAll((Map<Hash, byte[]>) db);
         }
 
         if((db = objectFromBytes(loadBytes(path + "/hashes.map"))) != null) {
-            hashesMap.putAll((Map<Hash, Hashes>) db);
+            hashesMap.putAll((Map<Hash, byte[]>) db);
         }
 
         if((db = objectFromBytes(loadBytes(path + "/statediff.map"))) != null) {
-            stateDiffMap.putAll((Map<Hash, StateDiff>) db);
+            stateDiffMap.putAll((Map<Hash, byte[]>) db);
         }
 
         if((db = objectFromBytes(loadBytes(path + "/milestone.map"))) != null) {
             synchronized (syncObj) {
-                milestoneMap.putAll((TreeMap<Indexable, Milestone>) db);
+                milestoneMap.putAll((TreeMap<Indexable, byte[]>) db);
             }
         }
     }
