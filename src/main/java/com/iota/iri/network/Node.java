@@ -234,7 +234,7 @@ public class Node {
                 Hash requestedHash = new Hash(receivedData, TransactionViewModel.SIZE, TransactionRequester.REQUEST_HASH_SIZE);
                 if (requestedHash.equals(receivedTransactionViewModel.getHash())) {
                     //requesting a random tip
-                    requestedHash = null;
+                    requestedHash = Hash.NULL_HASH;
                 }
 
                 addReceivedDataToReplyQueue(requestedHash, neighbor);
@@ -345,7 +345,7 @@ public class Node {
         Hash transactionPointer;
 
         //retrieve requested transaction
-        if (requestedHash == null) {
+        if (requestedHash.equals(Hash.NULL_HASH)) {
             //Random Tip Request
             try {
                 if (TransactionRequester.instance().numberOfTransactionsToRequest() > 0) {
