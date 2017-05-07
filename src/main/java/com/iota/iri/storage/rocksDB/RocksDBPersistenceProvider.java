@@ -66,7 +66,7 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
     }
 
 
-    private void initClassTreeMap() {
+    private void initClassTreeMap() throws RocksDBException {
         Map<Class<?>, ColumnFamilyHandle> classMap = new HashMap<>();
         classMap.put(Transaction.class, transactionHandle);
         classMap.put(Milestone.class, milestoneHandle);
@@ -74,10 +74,10 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
         classMap.put(Hashes.class, hashesHandle);
         classTreeMap.set(classMap);
 
-        counts.put(Transaction.class, 0L);
-        counts.put(Milestone.class, 0L);
-        counts.put(StateDiff.class, 0L);
-        counts.put(Hashes.class, 0L);
+        counts.put(Transaction.class, getCountEstimate(Transaction.class));
+        counts.put(Milestone.class, getCountEstimate(Milestone.class));
+        counts.put(StateDiff.class, getCountEstimate(StateDiff.class));
+        counts.put(Hashes.class, getCountEstimate(Hashes.class));
     }
 
     @Override
@@ -167,9 +167,12 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public long count(Class<?> model) throws Exception {
-        ColumnFamilyHandle handle = classTreeMap.get().get(model);
-        long estimation = db.getLongProperty(handle, "rocksdb.estimate-num-keys");
         return counts.get(model);
+    }
+
+    private long getCountEstimate(Class<?> model) throws RocksDBException {
+        ColumnFamilyHandle handle = classTreeMap.get().get(model);
+        return db.getLongProperty(handle, "rocksdb.estimate-num-keys");
     }
 
     @Override
