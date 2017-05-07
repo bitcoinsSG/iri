@@ -67,10 +67,6 @@ public class Node {
     private LRUHashCache recentSeenHashes = new LRUHashCache(5000);
     private LRUByteCache recentSeenBytes = new LRUByteCache(15000);
 
-
-    private FIFOHashNeighborCache recentSeenRequests = new FIFOHashNeighborCache(2000);
-
-
     private static AtomicLong recentSeenBytesMissCount = new AtomicLong(0L);
     private static AtomicLong recentSeenBytesHitCount = new AtomicLong(0L);
 
@@ -241,32 +237,8 @@ public class Node {
                     requestedHash = null;
                 }
 
-                //Timeout for recently requested Hashes from neighbor.
-                //check if cached
-                int cachedRequest = 0;
-                synchronized (recentSeenRequests) {
-                    cachedRequest = recentSeenRequests.get(new ImmutablePair<Hash,Neighbor>(requestedHash,neighbor));
-                }
+                addReceivedDataToReplyQueue(requestedHash, neighbor);
 
-                if (cachedRequest % 10 != 0) {
-                    //if cached, then drop request - Timeout
-                    recentSeenRequests.set(new ImmutablePair<Hash,Neighbor>(requestedHash,neighbor), cachedRequest+1);
-                    recentSeenRequestsHitCount.getAndIncrement();
-                    return;
-                }
-
-                //if not cached, then reply to request and cache.
-                synchronized (recentSeenRequests) {
-                    addReceivedDataToReplyQueue(requestedHash, neighbor);
-                    recentSeenRequests.set(new ImmutablePair<Hash,Neighbor>(requestedHash,neighbor), 1);
-                }
-                recentSeenRequestsMissCount.getAndIncrement();
-
-                if (((recentSeenRequestsMissCount.get() + recentSeenRequestsHitCount.get()) % 50000L == 0)) {
-                    log.info("recentSeenRequests cache hit/miss ratio: "+recentSeenRequestsHitCount.get()+"/"+recentSeenRequestsMissCount.get());
-                    recentSeenRequestsMissCount.set(0L);
-                    recentSeenRequestsHitCount.set(0L);
-                }
 
             }
         }
@@ -714,36 +686,4 @@ public class Node {
         }
     }
 
-    public class FIFOHashNeighborCache {
-
-        private int capacity;
-        private LinkedHashMap<Pair<Hash,Neighbor>,Integer> map;
-
-        public FIFOHashNeighborCache(int capacity) {
-            this.capacity = capacity;
-            this.map = new LinkedHashMap<>();
-        }
-
-        public int get(Pair<Hash,Neighbor> key) {
-            Integer value = this.map.get(key);
-            if (value == null) {
-                value = 0;
-            } else {
-                //FIFO
-                //this.set(key, value);
-            }
-            return value;
-        }
-
-        public void set(Pair<Hash,Neighbor> key, int value) {
-            if (this.map.containsKey(key)) {
-                this.map.remove(key);
-            } else if (this.map.size() == this.capacity) {
-                Iterator<Pair<Hash,Neighbor>> it = this.map.keySet().iterator();
-                it.next();
-                it.remove();
-            }
-            map.put(key, value);
-        }
-    }
 }
