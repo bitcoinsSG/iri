@@ -92,12 +92,14 @@ public class TransactionRequester {
                 Iterator<Hash> iterator = requestSet.iterator();
                 hash = iterator.next();
                 iterator.remove();
-                if (TransactionViewModel.exists(hash)) {
-                    log.info("Removed existing tx from request list: " + hash);
-                } else {
+            }
+            if (TransactionViewModel.exists(hash)) {
+                log.info("Removed existing tx from request list: " + hash);
+            } else {
+                synchronized (syncObj) {
                     requestSet.add(hash);
-                    break;
                 }
+                break;
             }
         }
 
