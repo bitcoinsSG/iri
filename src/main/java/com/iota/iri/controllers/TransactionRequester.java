@@ -76,29 +76,30 @@ public class TransactionRequester {
         final long beginningTime = System.currentTimeMillis();
         Hash hash = null;
         Set<Hash> requestSet;
-        synchronized (syncObj) {
-            if(milestone) {
-                 requestSet = milestoneTransactionsToRequest;
-                 if(requestSet.size() == 0) {
-                     requestSet = transactionsToRequest;
-                 }
-            } else {
-                requestSet = transactionsToRequest;
-                if(requestSet.size() == 0) {
-                    requestSet = milestoneTransactionsToRequest;
-                }
+        if(milestone) {
+             requestSet = milestoneTransactionsToRequest;
+             if(requestSet.size() == 0) {
+                 requestSet = transactionsToRequest;
+             }
+        } else {
+            requestSet = transactionsToRequest;
+            if(requestSet.size() == 0) {
+                requestSet = milestoneTransactionsToRequest;
             }
-            while(requestSet.size() != 0) {
-                //hash = (Hash) requestSet.toArray()[random.nextInt(requestSet.size())];
-                Iterator<Hash> iterator = requestSet.iterator();
+        }
+        while(requestSet.size() != 0) {
+            Iterator<Hash> iterator = requestSet.iterator();
+            synchronized (syncObj) {
                 hash = iterator.next();
                 iterator.remove();
-                if(TransactionViewModel.exists(hash)) {
-                    log.info("Removed existing tx from request list: " + hash);
-                } else {
+            }
+            if (TransactionViewModel.exists(hash)) {
+                log.info("Removed existing tx from request list: " + hash);
+            } else {
+                synchronized (syncObj) {
                     requestSet.add(hash);
-                    break;
                 }
+                break;
             }
         }
 
