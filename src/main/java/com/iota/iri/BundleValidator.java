@@ -11,11 +11,16 @@ import java.util.*;
 
 public class BundleValidator {
     private final List<List<TransactionViewModel>> transactions = new LinkedList<>();
-    private final HashesViewModel bundleViewModel;
+    private final HashesViewModel bundle;
 
     BundleValidator(HashesViewModel bundleHashes) throws Exception {
-        this.bundleViewModel = bundleHashes;
-        this.init();
+        this.bundle = bundleHashes;
+    }
+
+    public static BundleValidator load(HashesViewModel bundleHashes) throws Exception {
+        BundleValidator bundleValidator = new BundleValidator(bundleHashes);
+        bundleValidator.init();
+        return bundleValidator;
     }
 
     private void init() throws Exception {
@@ -127,7 +132,7 @@ public class BundleValidator {
     private Map<Hash, TransactionViewModel> loadTransactionsFromTangle() {
         final Map<Hash, TransactionViewModel> bundleTransactions = new HashMap<>();
         try {
-            for (final Hash transactionViewModel : this.bundleViewModel.getHashes()) {
+            for (final Hash transactionViewModel : this.bundle.getHashes()) {
                 bundleTransactions.put(transactionViewModel, TransactionViewModel.fromHash(transactionViewModel));
             }
         } catch (Exception e) {
@@ -142,7 +147,7 @@ public class BundleValidator {
 
     Set<TransactionViewModel> getTransactionViewModels() throws Exception {
         Set<TransactionViewModel> transactionViewModelSet = new HashSet<>();
-        for(Hash hash: bundleViewModel.getHashes()) {
+        for(Hash hash: bundle.getHashes()) {
             transactionViewModelSet.add(TransactionViewModel.fromHash(hash));
         }
         return transactionViewModelSet;

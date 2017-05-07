@@ -122,7 +122,7 @@ public class Milestone {
             // Already validated.
             return true;
         }
-        final BundleValidator bundleValidator = new BundleValidator(HashesViewModel.load(transactionViewModel.getBundleHash()));
+        final BundleValidator bundleValidator = BundleValidator.load(HashesViewModel.load(transactionViewModel.getBundleHash()));
         if (bundleValidator.getTransactions().size() == 0) {
             return false;
         }

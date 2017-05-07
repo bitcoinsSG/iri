@@ -64,7 +64,7 @@ public class LedgerValidator {
 
                             boolean validBundle = false;
 
-                            final BundleValidator bundleValidator = new BundleValidator(transactionViewModel.getBundle());
+                            final BundleValidator bundleValidator = BundleValidator.load(transactionViewModel.getBundle());
                             for (final List<TransactionViewModel> bundleTransactionViewModels : bundleValidator.getTransactions()) {
 
                                 if (bundleTransactionViewModels.get(0).getHash().equals(transactionViewModel.getHash())) {
