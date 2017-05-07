@@ -178,7 +178,7 @@ public class Milestone {
     }
 
     private void findNewMilestones() throws Exception {
-        HashesViewModel.load(Milestone.instance.coordinatorHash).getHashes().parallelStream()
+        HashesViewModel.load(Milestone.instance.coordinatorHash).getHashes().stream()
                 .filter(analyzedMilestoneCandidates::add)
                 .map(TransactionViewModel::quietFromHash)
                 .filter(t -> t.getCurrentIndex() == 0)
