@@ -31,7 +31,7 @@ public class BundleValidatorTest {
         Configuration.put(Configuration.DefaultConfSettings.DB_PATH, dbFolder.getRoot().getAbsolutePath());
         Configuration.put(Configuration.DefaultConfSettings.DB_LOG_PATH, logFolder.getRoot().getAbsolutePath());
         Tangle.instance().addPersistenceProvider(new RocksDBPersistenceProvider());
-        Tangle.instance().init();
+        Tangle.instance().init(Configuration.integer(Configuration.DefaultConfSettings.DB_TIMEOUT));
     }
 
     @AfterClass

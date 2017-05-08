@@ -75,7 +75,7 @@ public class IRI {
         try {
             TransactionValidator.init(Configuration.booling(Configuration.DefaultConfSettings.TESTNET));
             initializeTangle();
-            Tangle.instance().init();
+            Tangle.instance().init(Configuration.integer(DefaultConfSettings.DB_TIMEOUT));
             LedgerValidator.init();
             Milestone.instance().init();
             TipsManager.instance.init();

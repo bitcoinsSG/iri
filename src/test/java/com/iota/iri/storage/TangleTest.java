@@ -34,7 +34,7 @@ public class TangleTest {
         Configuration.put(Configuration.DefaultConfSettings.DB_LOG_PATH, logFolder.getRoot().getAbsolutePath());
         instance = Tangle.instance();
         instance.addPersistenceProvider(new RocksDBPersistenceProvider());
-        instance.init();
+        instance.init(Configuration.integer(Configuration.DefaultConfSettings.DB_TIMEOUT));
     }
 
     @After
