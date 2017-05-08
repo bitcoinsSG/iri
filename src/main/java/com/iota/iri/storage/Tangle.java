@@ -33,6 +33,10 @@ public class Tangle {
         }
     }
 
+    public int getActiveThreads() {
+        return ((ThreadPoolExecutor) executor).getActiveCount();
+    }
+
 
     public void shutdown() throws Exception {
         log.info("Shutting down Tangle Persistence Providers... ");
