@@ -257,6 +257,14 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
         return object;
     }
 
+    @Override
+    public boolean merge(Persistable model, Indexable index) throws Exception {
+        boolean exists = mayExist(model.getClass(), index);
+        db.merge(classTreeMap.get().get(model.getClass()), index.bytes(), model.bytes());
+        byte[] now = db.get(classTreeMap.get().get(model.getClass()), index.bytes());
+        return exists;
+    }
+
     private void flushHandle(ColumnFamilyHandle handle) throws RocksDBException {
         List<byte[]> itemsToDelete = new ArrayList<>();
         RocksIterator iterator = db.newIterator(handle);
@@ -313,7 +321,7 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
     }
 
     private void initDB(String path, String logPath) throws Exception {
-        StringAppendOperator stringAppendOperator = new StringAppendOperator();
+        MergeOperator myOperator = new StringAppendOperator();
         try {
             RocksDB.loadLibrary();
         } catch(Exception e) {
@@ -337,7 +345,7 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
         List<ColumnFamilyDescriptor> familyDescriptors = Arrays.stream(columnFamilyNames)
                 .map(name -> new ColumnFamilyDescriptor(name.getBytes(),
                         new ColumnFamilyOptions()
-                                .setMergeOperator(stringAppendOperator).setTableFormatConfig(blockBasedTableConfig))).collect(Collectors.toList());
+                                .setMergeOperator(myOperator).setTableFormatConfig(blockBasedTableConfig))).collect(Collectors.toList());
 
         familyDescriptors.add(0, new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, new ColumnFamilyOptions()));
 

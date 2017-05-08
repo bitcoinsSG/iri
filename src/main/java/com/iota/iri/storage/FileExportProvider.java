@@ -131,6 +131,11 @@ public class FileExportProvider implements PersistenceProvider {
         return null;
     }
 
+    @Override
+    public boolean merge(Persistable model, Indexable index) throws Exception {
+        return false;
+    }
+
     private static long lastFileNumber = 0L;
     private static Object lock = new Object();
 

@@ -1,6 +1,8 @@
 package com.iota.iri.storage;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.iota.iri.model.Hash;
+import com.iota.iri.model.Hashes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,5 +173,17 @@ public class Tangle {
                 }
             }
             return latest;
+    }
+
+    public boolean merge(Persistable model, Indexable index) throws Exception {
+        boolean exists = false;
+        for(PersistenceProvider provider: persistenceProviders) {
+            if(exists) {
+                provider.save(model, index);
+            } else {
+                exists = provider.merge(model, index);
+            }
+        }
+        return exists;
     }
 }

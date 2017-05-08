@@ -3,6 +3,7 @@ package com.iota.iri.storage;
 import com.iota.iri.conf.Configuration;
 import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.model.*;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.LoggerFactory;
 
@@ -275,6 +276,13 @@ public class MemDBPersistenceProvider implements PersistenceProvider {
             }
         }
         return object;
+    }
+
+    @Override
+    public boolean merge(Persistable model, Indexable index) throws Exception {
+        byte[] current = classTreeMap.get().get(model.getClass()).get(index);
+        classTreeMap.get().get(model.getClass()).put(index, ArrayUtils.addAll(current == null? new byte[0]: ArrayUtils.add(current, (byte)44), model.bytes()));
+        return current != null;
     }
 
     @Override

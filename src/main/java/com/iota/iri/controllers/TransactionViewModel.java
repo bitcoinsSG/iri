@@ -2,6 +2,7 @@ package com.iota.iri.controllers;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import com.iota.iri.model.Hashes;
 import com.iota.iri.model.Hash;
@@ -168,29 +169,9 @@ public class TransactionViewModel {
 
             //log.info("Tx To save Hash: " + getHash());
             getBytes();
-            {
-                getAddress().addHash(getHash());
-                address.store();
-            }
-            {
-                getBundle().addHash(getHash());
-                bundle.store();
-            }
-            {
-                HashesViewModel branchApproovee = HashesViewModel.load(getBranchTransactionHash());
-                branchApproovee.addHash(getHash());
-                branchApproovee.store();
-            }
-            {
-                HashesViewModel trunkApproovee = HashesViewModel.load(getTrunkTransactionHash());
-                trunkApproovee.addHash(getHash());
-                trunkApproovee.store();
-            }
-            {
-                HashesViewModel tag = getTag();
-                tag.addHash(getHash());
-                tag.store();
-            }
+
+            storeHashes(Arrays.asList(getAddressHash(), getBundleHash(),
+                    getBranchTransactionHash(), getTrunkTransactionHash(), getTagValue()));
             TransactionRequester.instance().requestTransaction(getBranchTransactionHash(), false);
             TransactionRequester.instance().requestTransaction(getTrunkTransactionHash(), false);
             if(getApprovers().size() == 0) {
@@ -203,6 +184,11 @@ public class TransactionViewModel {
         return false;
     }
 
+    private void storeHashes(Collection<Hash> hashesToSave) throws Exception {
+        for(Hash hash: hashesToSave) {
+            HashesViewModel.merge(hash, getHash());
+        }
+    }
 
     public Set<Hash> getApprovers() throws Exception {
         Hashes self = (Hashes) Tangle.instance().load(Hashes.class, hash);

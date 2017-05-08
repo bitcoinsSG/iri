@@ -16,14 +16,14 @@ public class Hashes implements Persistable {
     public byte[] bytes() {
         return set.parallelStream()
                 .map(Hash::bytes)
-                .reduce(ArrayUtils::addAll)
+                .reduce((a,b) -> ArrayUtils.addAll(ArrayUtils.add(a, (byte)44), b))
                 .orElse(new byte[0]);
     }
 
     public void read(byte[] bytes) {
         if(bytes != null) {
             set = new HashSet<>();
-            for (int i = 0; i < bytes.length; i += Hash.SIZE_IN_BYTES) {
+            for (int i = 0; i < bytes.length; i += 1 + Hash.SIZE_IN_BYTES) {
                 set.add(new Hash(bytes, i, Hash.SIZE_IN_BYTES));
             }
         }

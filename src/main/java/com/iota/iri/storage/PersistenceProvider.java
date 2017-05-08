@@ -37,4 +37,6 @@ public interface PersistenceProvider {
     Persistable previous(Class<?> model, Indexable index) throws Exception;
 
     Persistable first(Class<?> model) throws Exception;
+
+    boolean merge(Persistable model, Indexable index) throws Exception;
 }
