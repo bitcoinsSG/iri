@@ -364,9 +364,11 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
             throw e;
         }
 
+        /*
         RocksEnv.getDefault().setBackgroundThreads(Runtime.getRuntime().availableProcessors())
                 .setBackgroundThreads(Runtime.getRuntime().availableProcessors(), RocksEnv.FLUSH_POOL)
                 .setBackgroundThreads(Runtime.getRuntime().availableProcessors(), RocksEnv.COMPACTION_POOL);
+                */
 
         bloomFilter = new BloomFilter(BLOOM_FILTER_BITS_PER_KEY);
         BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().setFilter(bloomFilter);
