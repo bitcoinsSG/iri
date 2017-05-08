@@ -26,7 +26,8 @@ public class Tangle {
     }
 
     public void init(int timeout) throws Exception {
-        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        //executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        executor = Executors.newCachedThreadPool();
         QUERY_TIMEOUT = timeout;
         for(PersistenceProvider provider: this.persistenceProviders) {
             provider.init();
