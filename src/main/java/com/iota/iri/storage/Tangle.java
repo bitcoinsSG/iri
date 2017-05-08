@@ -18,7 +18,7 @@ public class Tangle {
     private static final Tangle instance = new Tangle();
     private final List<PersistenceProvider> persistenceProviders = new ArrayList<>();
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private ExecutorService executor;
     private int QUERY_TIMEOUT;
 
     public void addPersistenceProvider(PersistenceProvider provider) {
@@ -26,6 +26,7 @@ public class Tangle {
     }
 
     public void init(int timeout) throws Exception {
+        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         QUERY_TIMEOUT = timeout;
         for(PersistenceProvider provider: this.persistenceProviders) {
             provider.init();
