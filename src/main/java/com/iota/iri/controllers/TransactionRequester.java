@@ -87,19 +87,17 @@ public class TransactionRequester {
                 requestSet = milestoneTransactionsToRequest;
             }
         }
-        while(requestSet.size() != 0) {
-            synchronized (syncObj) {
+        synchronized (syncObj) {
+            while (requestSet.size() != 0) {
                 Iterator<Hash> iterator = requestSet.iterator();
                 hash = iterator.next();
                 iterator.remove();
-            }
-            if (TransactionViewModel.exists(hash)) {
-                log.info("Removed existing tx from request list: " + hash);
-            } else {
-                synchronized (syncObj) {
+                if (TransactionViewModel.exists(hash)) {
+                    log.info("Removed existing tx from request list: " + hash);
+                } else {
                     requestSet.add(hash);
+                    break;
                 }
-                break;
             }
         }
 
